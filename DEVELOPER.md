@@ -329,4 +329,18 @@ GitHub Actions will run the following steps:
 4. Build the PDF documentation as described above.
 5. Create a draft release and upload the documentation PDF and a zip archive of model input files as assets.
 
-Inspect and publish the release. After publishing, it is necessary to manually trigger a rebuild of the ReadTheDocs site. This can be done by starting the `rtd` workflow from the GitHub Actions web UI, specifying `refs/heads/master` for both the examples and MF6 repos in the dialog. (The workflow should be used from the `develop` branch.)
+Inspect and publish the release.
+
+The ReadTheDocs site for `master` is not fully rebuilt automatically on release, and must be rebuilt manually once MF6 has been released. The examples are released before MF6 (the MF6 release distributes the latest examples release's PDF and model input files), so at examples release time MF6's `master` branch still contains the previous release, while its `develop` branch has a development version number. The full release sequence is:
+
+1. Release the examples as described above.
+2. Release MF6.
+3. Rebuild the ReadTheDocs site for `master`, building MF6 from its `master` branch so the docs reflect the new MF6 release version.
+
+To rebuild the site, start the `rtd` workflow from the `develop` branch, specifying `refs/heads/master` for both the examples and MF6 refs. This can be done from the GitHub Actions web UI or with the GitHub CLI:
+
+```shell
+gh workflow run rtd -R MODFLOW-ORG/modflow6-examples --ref develop -f ref=refs/heads/master -f mf6_ref=refs/heads/master
+```
+
+**Note**: The site must be rebuilt with the `rtd` workflow, not from the ReadTheDocs dashboard. The workflow runs the notebooks and uploads their outputs as an artifact named for the commit, which ReadTheDocs downloads during its build. A ReadTheDocs build with no matching artifact (e.g. one started from the dashboard, or after the artifact has expired) will be missing the example descriptions and notebooks.
