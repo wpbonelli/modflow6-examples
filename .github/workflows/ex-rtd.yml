@@ -29,12 +29,12 @@ on:
 jobs:
   set_options:
     name: Set release options
-    if: github.ref_name != 'master'
     runs-on: ubuntu-22.04
     outputs:
       ref: ${{ steps.set_ref.outputs.ref }}
       sha: ${{ steps.set_sha.outputs.sha }}
       mf6_ref: ${{ steps.set_mf6_ref.outputs.ref }}
+      releasemode: ${{ steps.set_releasemode.outputs.releasemode }}
     steps:
       - name: Set ref
         id: set_ref
@@ -77,6 +77,18 @@ jobs:
           fi
           echo "using mf6 ref $ref"
           echo "ref=$ref" >> $GITHUB_OUTPUT
+
+      - name: Set release mode
+        id: set_releasemode
+        run: |
+          # generate flopy classes without developmode variables for master (or MF6 master)
+          if [[ "${{ steps.set_ref.outputs.ref }}" == "refs/heads/master" || "${{ steps.set_mf6_ref.outputs.ref }}" == "refs/heads/master" ]]; then
+            releasemode=true
+          else
+            releasemode=false
+          fi
+          echo "using release mode $releasemode"
+          echo "releasemode=$releasemode" >> $GITHUB_OUTPUT
   build:
     name: Build artifacts for RTD
     needs: set_options
@@ -131,7 +143,7 @@ jobs:
         working-directory: modflow6-examples
         run: |
           cmd="pixi run python -m flopy.mf6.utils.generate_classes --ref ${{ needs.set_options.outputs.mf6_ref }}"
-          if [[ "${{ needs.set_options.outputs.mf6_ref }}" == "refs/heads/master" ]]; then
+          if [[ "${{ needs.set_options.outputs.releasemode }}" == "true" ]]; then
             cmd="$cmd --releasemode"
           fi
           eval "$cmd"
